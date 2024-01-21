@@ -1,0 +1,11 @@
+# Indexar todas las carpetas
+Options All -Indexes
+# Para tener multivistas
+Options -MultiViews
+
+# 
+RewriteEngine On
+
+#Todo lo que tenga la URL sea interpreatado como una regla
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
