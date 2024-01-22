@@ -49,6 +49,7 @@
 		// ===========================================================================
 		// Peticiones GET CON Filtro
 		// ============================================================================
+		
 		public function getFilterData($table,$linkTo,$equalTo)
 		{
 			$return = new GetController();
@@ -76,6 +77,20 @@
 
 		// Respuestas del Controlador. Se crea esta funcion para no duplicar el codigo
 		// No se coloca la palabra "Static" ya que no se ejecutara de forma inmediata almacenara la os datos.
+
+		// ===========================================================================
+		// Peticiones GET con tablas(2) relacionadas CON Filtro
+		// ============================================================================
+		public function getRelFilterData($rel,$type,$linkTo,$equalTo)
+		{
+			// $rel = Son las tablas que se van a relacionar
+			// $type = Por cual campo se van a relacionar la tabla, por lo general es : "id_product",....
+			// $linkTo = Es el campo por el cual se hara al filtrado
+			// $equalTo = Es el valor del campos por el cual se hara el filtrado
+			$return = new GetController();
+			$return->fncResponse('getRelFilterData',$rel,$type,$linkTo,$equalTo);
+		}
+
 		public function fncResponse($nombre_funcion,$table,$type,$linkTo,$equalTo)
 		{
 			if ($nombre_funcion == 'GetData')
@@ -121,24 +136,28 @@
 				{
 					if ($Field_found->found_Field_Table($table,$linkTo,$RelacionarTabla) == 'S')
 					{
-						// Obtener la informacion desde la base de datos.
-						$response = GetModel::getFilterData($table,$linkTo,$equalTo);				
-	
-						if (!empty($response))
-						{
-							$json = array(
-								'status' => 200,
-								'total' => count($response),
-								'results' => $response
-							);			
-						}
-						else
-						{
-							$json = array(
-								'status' => 200,					
-								'results' => "Not Datas"
-							);				
-						}
+						// Por si escriben mal la palabra "linkTo" y "equalTo"
+						//if (isset($_GET["linkTo"]) && isset($_GET["equalTo"]))
+						//{
+							// Obtener la informacion desde la base de datos.
+							$response = GetModel::getFilterData($table,$linkTo,$equalTo);				
+		
+							if (!empty($response))
+							{
+								$json = array(
+									'status' => 200,
+									'total' => count($response),
+									'results' => $response
+								);			
+							}
+							else
+							{
+								$json = array(
+									'status' => 400,					
+									'results' => "Not Datas"
+								);				
+							}
+						//} // if (isset($_GET["linkTo"]) && isset($_GET["equalTo"]))
 	
 					} // if ($Field_found->found_Field_Table($linkTo) == 'S')
 					else
@@ -251,6 +270,93 @@
 				return;
 	
 			} // if ($nombre_funcion == "getRelData")
+
+			if ($nombre_funcion == "getRelFilterData")
+			{
+				$Table_found = new GetController();
+				$Field_found = new GetController();
+	
+				//echo '<pre>';print_r($Table_found->found_Table($table));echo'</pre>';
+				//exit;
+				
+				$rel = $table; // Tablas a relacionarse(al menos 2)
+				//echo '<pre>';print_r($rel);'echo </pre>';
+
+
+				if ($Table_found->found_Table($rel) == 'S')
+				{
+					// Verificando que exista los campos 
+					//$Arreglo_tablas = explode(",",$table);
+					$Arreglo_campos = explode(",",$type);
+					//echo '<pre>';print_r($Arreglo_tablas);echo'</pre>';
+					
+					$contador = 0;
+					$Existe_Campo = 'N';
+					
+					//for($p=0;$p<count($Arreglo_tablas);$p++)
+					//{						
+						for ($k=0;$k<count($Arreglo_campos);$k++)
+						{
+							//echo '<pre>';print_r($nombre_Campo);echo'</pre>';
+							$Tablas = Null;
+							$RelacionarTabla = 'S';
+							$Existe_Campo = $Field_found->found_Field_Table($Tablas,$Arreglo_campos[$k],$RelacionarTabla);
+							if ($Existe_Campo == 'S')
+							{
+								$contador+=1;
+							}
+							//echo '<pre>';print_r($contador);echo'</pre>';
+							//break;
+
+						} // for ($k=0;$k<count($Arreglo_campos);$k++)
+
+					if ($contador == count($Arreglo_campos)) 
+					{
+						// Obtener la informacion desde la base de datos.
+						$response = GetModel::getRelFilterData($rel,$type,$linkTo,$equalTo);
+							
+						if (!empty($response))
+						{
+							$json = array(
+								'status' => 200,
+								'total' => count($response),
+								'results' => $response
+							);			
+						}
+						else
+						{
+							$json = array(
+								'status' => 200,					
+								'results' => "Not Datas"								
+							);				
+						}
+	
+					} // if ($contador == count($Arreglo_tablas)) 
+					else
+					{
+						$json = array(
+							'status' => 400,					
+							'results' => "Field of Table Not Found",
+							'method' => 'getRelData'
+						);				
+					}
+	
+					echo json_encode($json,http_response_code($json["status"]));		
+					return;	
+				}
+				else // if ($Table_found->found_Table($rel) == 'S')
+				{
+					$json = array(
+						'status' => 400,					
+						'results' => "Not Table Found",
+						'method' => 'getRelData'
+					);				
+				} // if ($Table_found->found_Table($rel) == 'S')
+				echo json_encode($json,http_response_code($json["status"]));		
+				return;
+	
+			} // if ($nombre_funcion == "getRelFilterData")
+
 
 		} // public function fncResponse($response,$nombre_funcion,$linkTo,$equalTo)
 
@@ -396,7 +502,8 @@
 				}
 				//echo '<pre>';print_r($found); echo'</pre>';				
 
-			} // if ($RelacionarTabla != 'S')			
+			} // if ($RelacionarTabla != 'S')		
+
 			return $found;
 		} // static public function found_Field_Table($table,$Field)
 
